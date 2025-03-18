@@ -32,13 +32,13 @@ class LearnerService {
             client = await getConnection();
             // Insert the learner into the database
             const query = `
-                    INSERT INTO learner 
-                        (name, email, password_hash, date_of_birth, knowledge_level, learning_goals, knowledge_base, 
-                        learning_style_active_reflective, learning_style_visual_verbal, learning_style_sensing_intuitive, 
-                        learning_style_sequential_global, preferred_learning_pace, engagement_score, feedback_history)
-                    VALUES 
-                        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                    RETURNING id;`;
+            INSERT INTO learner 
+                (name, email, password_hash, date_of_birth, knowledge_level, learning_goals, knowledge_base, 
+                learning_style_active_reflective, learning_style_visual_verbal, learning_style_sensing_intuitive, 
+                learning_style_sequential_global, preferred_learning_pace, engagement_score, feedback_history)
+            VALUES 
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING id, email;`; // Now returning both id and email
 
             const result = await client.query(query, [
                 learnerDTO.name, learnerDTO.email, hashedPassword, learnerDTO.date_of_birth, learnerDTO.knowledge_level,
@@ -50,6 +50,7 @@ class LearnerService {
 
             // Extract the learner ID and email from the result
             const newLearner = result.rows[0];
+            console.log(newLearner)
 
             // Generate JWT token using learner id and email
             const token = generateToken(newLearner);
@@ -87,17 +88,6 @@ class LearnerService {
             throw new Error('Error during login: ' + error.message);
         }
     }
-
-    // Verify if the provided token is valid
-    async verifyToken(token) {
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-            return decoded; // Return the decoded user info from the token
-        } catch (error) {
-            throw new Error('Invalid or expired token');
-        }
-    }
-
 
     // Update learning styles
     async updateLearningStyles(learnerId, learningStyles) {
