@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { getConnection, returnConnection } = require('../config/postgress-conn');
 const LearnerDTO = require('../dtos/learnerDto');
+const { generateToken } = require('../utils/jwtHelper');
 
 class LearnerService {
 
@@ -47,8 +48,15 @@ class LearnerService {
                 learnerDTO.engagement_score, learnerDTO.feedback_history
             ]);
 
-            // Return the ID of the newly created learner
-            return result.rows[0].id;
+            // Extract the learner ID and email from the result
+            const newLearner = result.rows[0];
+
+            // Generate JWT token using learner id and email
+            const token = generateToken(newLearner);
+
+            // Return both the learner ID and token
+            return { learnerId: newLearner.id, token };
+
 
         } catch (error) {
             console.error('Error creating learner:', error);
@@ -57,6 +65,39 @@ class LearnerService {
             if (client) returnConnection(client);
         }
     }
+
+    async login(email, password) {
+        try {
+            // Find the learner by email
+            const learner = await this.getLearnerByEmail(email);
+            if (!learner) {
+                throw new Error('Invalid credentials');
+            }
+            // Compare the password with the stored password hash
+            const isMatch = await bcrypt.compare(password, learner.password_hash);
+            if (!isMatch) {
+                throw new Error('Invalid credentials');
+            }
+
+            // Generate a new token with the learner's ID and email
+            const token = generateToken(learner);
+
+            return { learnerId: learner.id, token }; // Return learner ID and token
+        } catch (error) {
+            throw new Error('Error during login: ' + error.message);
+        }
+    }
+
+    // Verify if the provided token is valid
+    async verifyToken(token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+            return decoded; // Return the decoded user info from the token
+        } catch (error) {
+            throw new Error('Invalid or expired token');
+        }
+    }
+
 
     // Update learning styles
     async updateLearningStyles(learnerId, learningStyles) {
@@ -127,6 +168,31 @@ class LearnerService {
 
         } catch (error) {
             console.error('Error updating knowledge base and learning goals:', error);
+            throw error;
+        } finally {
+            if (client) returnConnection(client);
+        }
+    }
+
+    async getLearnerByEmail(email) {
+        let client;
+        try {
+            // Get database connection
+            client = await getConnection();
+
+            // Query the database to find a learner by email
+            const query = 'SELECT * FROM learner WHERE email = $1';
+            const result = await client.query(query, [email]);
+
+            // If a learner is found, return their data
+            if (result.rows.length > 0) {
+                return result.rows[0]; // Return the first (and only) matching learner
+            }
+
+            // If no learner is found, return null
+            return null;
+        } catch (error) {
+            console.error('Error getting learner by email:', error);
             throw error;
         } finally {
             if (client) returnConnection(client);
