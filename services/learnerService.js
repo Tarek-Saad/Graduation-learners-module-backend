@@ -57,6 +57,81 @@ class LearnerService {
             if (client) returnConnection(client);
         }
     }
+
+    // Update learning styles
+    async updateLearningStyles(learnerId, learningStyles) {
+        let client;
+        try {
+            client = await getConnection();
+            // Construct the query to update learning styles
+            const query = `
+                UPDATE learner 
+                SET 
+                    learning_style_active_reflective = $1,
+                    learning_style_visual_verbal = $2,
+                    learning_style_sensing_intuitive = $3,
+                    learning_style_sequential_global = $4,
+                    last_active_date = CURRENT_TIMESTAMP
+                WHERE id = $5
+                RETURNING id;
+                `;
+
+            const result = await client.query(query, [
+                learningStyles.learning_style_active_reflective,
+                learningStyles.learning_style_visual_verbal,
+                learningStyles.learning_style_sensing_intuitive,
+                learningStyles.learning_style_sequential_global,
+                learnerId
+            ]);
+
+            return result.rows[0].id; // Return the ID of the updated learner
+
+        } catch (error) {
+            console.error('Error updating learning styles:', error);
+            throw error;
+        } finally {
+            if (client) returnConnection(client);
+        }
+    }
+
+    // Update knowledge_base and learning_goals
+    async updateKnowledgeBaseAndGoals(learnerId, knowledgeBase, learningGoals) {
+        let client;
+        try {
+            client = await getConnection();
+
+            // Ensure knowledge_base and learning_goals are arrays
+            if (!Array.isArray(knowledgeBase) || !Array.isArray(learningGoals)) {
+                throw new Error("Both knowledge_base and learning_goals must be arrays.");
+            }
+
+
+            // Construct the query to update knowledge base and learning goals
+            const query = `
+                UPDATE learner
+                SET 
+                    knowledge_base = $1,
+                    learning_goals = $2,
+                    last_active_date = CURRENT_TIMESTAMP
+                WHERE id = $3
+                RETURNING id;
+                `;
+
+            const result = await client.query(query, [
+                JSON.stringify(knowledgeBase), // Ensure it's a valid JSON string
+                JSON.stringify(learningGoals), // Ensure it's a valid JSON string
+                learnerId
+            ]);
+
+            return result.rows[0].id; // Return the ID of the updated learner
+
+        } catch (error) {
+            console.error('Error updating knowledge base and learning goals:', error);
+            throw error;
+        } finally {
+            if (client) returnConnection(client);
+        }
+    }
 }
 
 module.exports = new LearnerService();
