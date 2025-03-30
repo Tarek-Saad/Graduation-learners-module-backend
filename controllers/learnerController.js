@@ -37,7 +37,19 @@ const createLearnerClerk = async (data) => {
       throw new Error("Missing email from Clerk webhook");
     }
   
-    // خزن البيانات في الـ DB بتاعتك
+    // Check if learner already exists (optional but recommended)
+    const existingLearner = await db.learner.findUnique({
+      where: { clerkId },
+    });
+  
+    if (existingLearner) {
+      return {
+        learnerId: existingLearner.id,
+        message: "Learner already exists",
+      };
+    }
+  
+    // Create new learner in DB
     const learner = await db.learner.create({
       data: {
         clerkId,
@@ -47,14 +59,12 @@ const createLearnerClerk = async (data) => {
       },
     });
   
-    // لو عندك logic عايز تبعت بيه توكن
-    const token = createCustomToken(learner); // دي optional
-  
     return {
       learnerId: learner.id,
-      token,
+      message: "Learner created successfully",
     };
   };
+  
   
 
 const login = async(req, res) => {
