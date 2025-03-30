@@ -29,50 +29,48 @@ const createLearner = async(req, res) => {
     }
 }
 
-const createLearnerClerk = async (data) => {
+const createLearnerClerk = async (req, res) => {
     let client;
-
+  
     try {
-        console.log("🔥 RAW DATA FROM CLERK:", data);
-
-        const payload = data.data || data;
-
-        console.log("✅ Parsed Payload:", payload);
-
-        const { email_addresses, first_name, last_name } = payload;
-
-        console.log("📧 email_addresses:", email_addresses);
-
-        const email = email_addresses?.[0]?.email_address;
-
-        if (!email) {
-            throw new Error("Missing email from Clerk webhook");
-        }
-
-        const name = `${first_name || ''} ${last_name || ''}`.trim();
-
-        client = await getConnection();
-
-        const query = `
-            INSERT INTO learner (name, email)
-            VALUES ($1, $2)
-            RETURNING id, email;
-        `;
-
-        const result = await client.query(query, [name, email]);
-
-        return {
-            learnerId: result.rows[0].id,
-            message: "Learner created successfully"
-        };
-
+      const payload = req.body.data; // 👈 دي أهم سطر
+  
+      const { email_addresses, first_name, last_name } = payload;
+  
+      const email = email_addresses?.[0]?.email_address;
+  
+      if (!email) {
+        throw new Error("Missing email from Clerk webhook");
+      }
+  
+      const name = `${first_name || ''} ${last_name || ''}`.trim();
+  
+      client = await getConnection();
+  
+      const query = `
+        INSERT INTO learner (name, email)
+        VALUES ($1, $2)
+        RETURNING id, email;
+      `;
+  
+      const result = await client.query(query, [name, email]);
+  
+      return res.status(201).json({
+        learnerId: result.rows[0].id,
+        message: "Learner created successfully"
+      });
+  
     } catch (error) {
-        console.error("❌ Error creating learner from Clerk:", error);
-        throw error;
+      console.error("❌ Error creating learner from Clerk:", error);
+      return res.status(500).json({
+        message: "Failed to create learner",
+        error: error.message
+      });
     } finally {
-        if (client) returnConnection(client);
+      if (client) returnConnection(client);
     }
-};
+  };
+  
 
 const handleClerkWebhook = async (req, res) => {
     try {
@@ -146,4 +144,4 @@ const updateKnowledgeBaseAndGoals = async(req, res) => {
 }
 
 
-module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn , handleClerkWebhook };
+module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn , handleClerkWebhook , createLearnerClerk };
