@@ -28,6 +28,35 @@ const createLearner = async(req, res) => {
     }
 }
 
+const createLearnerClerk = async (data) => {
+    const { id: clerkId, email_addresses, first_name, last_name } = data;
+  
+    const email = email_addresses?.[0]?.email_address;
+  
+    if (!email) {
+      throw new Error("Missing email from Clerk webhook");
+    }
+  
+    // خزن البيانات في الـ DB بتاعتك
+    const learner = await db.learner.create({
+      data: {
+        clerkId,
+        email,
+        firstName: first_name,
+        lastName: last_name,
+      },
+    });
+  
+    // لو عندك logic عايز تبعت بيه توكن
+    const token = createCustomToken(learner); // دي optional
+  
+    return {
+      learnerId: learner.id,
+      token,
+    };
+  };
+  
+
 const login = async(req, res) => {
     const { email, password } = req.body;
     try {
@@ -88,4 +117,4 @@ const updateKnowledgeBaseAndGoals = async(req, res) => {
 }
 
 
-module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn };
+module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn , createLearnerClerk };
