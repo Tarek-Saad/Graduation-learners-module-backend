@@ -28,6 +28,10 @@ const questionsRouter = require('./routes/questions');
 app.use('/api', learnerRoutes);
 app.use('/questions', questionsRouter);
 
+app.get('/', (req, res) => {
+    res.send("welcome")
+})
+
 // Start server
 // const PORT = process.env.PORT || 5000;
 // app.listen(PORT, () => {
