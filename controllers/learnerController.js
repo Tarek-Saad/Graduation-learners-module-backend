@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const LearnerService = require('../services/learnerService');
 const { generateToken, verifyToken } = require('../utils/jwtHelper'); // Import the generateToken function
+const { getConnection, returnConnection } = require('../config/postgress-conn');
 
 
 
@@ -29,43 +30,61 @@ const createLearner = async(req, res) => {
 }
 
 const createLearnerClerk = async (data) => {
-    const { id: clerkId, email_addresses, first_name, last_name } = data;
-  
-    const email = email_addresses?.[0]?.email_address;
-  
-    if (!email) {
-      throw new Error("Missing email from Clerk webhook");
+    let client;
+
+    try {
+        console.log("🔥 RAW DATA FROM CLERK:", data);
+
+        const payload = data.data || data;
+
+        console.log("✅ Parsed Payload:", payload);
+
+        const { email_addresses, first_name, last_name } = payload;
+
+        console.log("📧 email_addresses:", email_addresses);
+
+        const email = email_addresses?.[0]?.email_address;
+
+        if (!email) {
+            throw new Error("Missing email from Clerk webhook");
+        }
+
+        const name = `${first_name || ''} ${last_name || ''}`.trim();
+
+        client = await getConnection();
+
+        const query = `
+            INSERT INTO learner (name, email)
+            VALUES ($1, $2)
+            RETURNING id, email;
+        `;
+
+        const result = await client.query(query, [name, email]);
+
+        return {
+            learnerId: result.rows[0].id,
+            message: "Learner created successfully"
+        };
+
+    } catch (error) {
+        console.error("❌ Error creating learner from Clerk:", error);
+        throw error;
+    } finally {
+        if (client) returnConnection(client);
     }
-  
-    // Check if learner already exists (optional but recommended)
-    const existingLearner = await db.learner.findUnique({
-      where: { clerkId },
-    });
-  
-    if (existingLearner) {
-      return {
-        learnerId: existingLearner.id,
-        message: "Learner already exists",
-      };
+};
+
+const handleClerkWebhook = async (req, res) => {
+    try {
+      const result = await createLearnerClerk(req.body); // ✅ هنا نمرر req.body بس
+      return res.status(201).json(result);
+    } catch (error) {
+      return res.status(500).json({
+        message: "Failed to create learner",
+        error: error.message
+      });
     }
-  
-    // Create new learner in DB
-    const learner = await db.learner.create({
-      data: {
-        clerkId,
-        email,
-        firstName: first_name,
-        lastName: last_name,
-      },
-    });
-  
-    return {
-      learnerId: learner.id,
-      message: "Learner created successfully",
-    };
   };
-  
-  
 
 const login = async(req, res) => {
     const { email, password } = req.body;
@@ -127,4 +146,4 @@ const updateKnowledgeBaseAndGoals = async(req, res) => {
 }
 
 
-module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn , createLearnerClerk };
+module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn , handleClerkWebhook };
