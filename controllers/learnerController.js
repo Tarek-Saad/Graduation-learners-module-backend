@@ -37,7 +37,7 @@ const createLearnerClerk = async(req, res) => {
 
         const { email_addresses, first_name, last_name } = payload;
 
-        const email = email_addresses ? .[0] ? .email_address;
+        const email = email_addresses && email_addresses[0] && email_addresses[0].email_address;
 
         if (!email) {
             throw new Error("Missing email from Clerk webhook");
