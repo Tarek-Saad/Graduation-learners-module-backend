@@ -29,60 +29,60 @@ const createLearner = async(req, res) => {
     }
 }
 
-const createLearnerClerk = async (req, res) => {
+const createLearnerClerk = async(req, res) => {
     let client;
-  
+
     try {
-      const payload = req.body.data; // 👈 دي أهم سطر
-  
-      const { email_addresses, first_name, last_name } = payload;
-  
-      const email = email_addresses?.[0]?.email_address;
-  
-      if (!email) {
-        throw new Error("Missing email from Clerk webhook");
-      }
-  
-      const name = `${first_name || ''} ${last_name || ''}`.trim();
-  
-      client = await getConnection();
-  
-      const query = `
+        const payload = req.body.data; // 👈 دي أهم سطر
+
+        const { email_addresses, first_name, last_name } = payload;
+
+        const email = email_addresses ? .[0] ? .email_address;
+
+        if (!email) {
+            throw new Error("Missing email from Clerk webhook");
+        }
+
+        const name = `${first_name || ''} ${last_name || ''}`.trim();
+
+        client = await getConnection();
+
+        const query = `
         INSERT INTO learner (name, email)
         VALUES ($1, $2)
         RETURNING id, email;
       `;
-  
-      const result = await client.query(query, [name, email]);
-  
-      return res.status(201).json({
-        learnerId: result.rows[0].id,
-        message: "Learner created successfully"
-      });
-  
-    } catch (error) {
-      console.error("❌ Error creating learner from Clerk:", error);
-      return res.status(500).json({
-        message: "Failed to create learner",
-        error: error.message
-      });
-    } finally {
-      if (client) returnConnection(client);
-    }
-  };
-  
 
-const handleClerkWebhook = async (req, res) => {
-    try {
-      const result = await createLearnerClerk(req.body); // ✅ هنا نمرر req.body بس
-      return res.status(201).json(result);
+        const result = await client.query(query, [name, email]);
+
+        return res.status(201).json({
+            learnerId: result.rows[0].id,
+            message: "Learner created successfully"
+        });
+
     } catch (error) {
-      return res.status(500).json({
-        message: "Failed to create learner",
-        error: error.message
-      });
+        console.error("❌ Error creating learner from Clerk:", error);
+        return res.status(500).json({
+            message: "Failed to create learner",
+            error: error.message
+        });
+    } finally {
+        if (client) returnConnection(client);
     }
-  };
+};
+
+
+const handleClerkWebhook = async(req, res) => {
+    try {
+        const result = await createLearnerClerk(req.body); // ✅ هنا نمرر req.body بس
+        return res.status(201).json(result);
+    } catch (error) {
+        return res.status(500).json({
+            message: "Failed to create learner",
+            error: error.message
+        });
+    }
+};
 
 const login = async(req, res) => {
     const { email, password } = req.body;
@@ -116,10 +116,17 @@ const verifyTokenn = async(req, res) => {
 }
 
 const updateLearningStyles = async(req, res) => {
-    const { learnerId, learning_style_active_reflective, learning_style_visual_verbal, learning_style_sensing_intuitive, learning_style_sequential_global } = req.body;
+    const { learnerId, email, learning_style_active_reflective, learning_style_visual_verbal, learning_style_sensing_intuitive, learning_style_sequential_global } = req.body;
     try {
+        if (!learnerId && !email) {
+            return res.status(400).json({ error: 'Either learnerId or email must be provided' });
+        }
+
+        // Create criteria object based on what was provided
+        const criteria = { learnerId, email };
+
         // Update learning styles
-        const updatedLearnerId = await LearnerService.updateLearningStyles(learnerId, {
+        const updatedLearnerId = await LearnerService.updateLearningStyles(criteria, {
             learning_style_active_reflective,
             learning_style_visual_verbal,
             learning_style_sensing_intuitive,
@@ -127,6 +134,9 @@ const updateLearningStyles = async(req, res) => {
         });
         res.status(200).json({ message: 'Learning styles updated successfully', learnerId: updatedLearnerId });
     } catch (error) {
+        if (error.message === 'Learner not found') {
+            return res.status(404).json({ error: 'Learner not found' });
+        }
         res.status(500).json({ error: 'Error updating learning styles' });
     }
 }
@@ -144,4 +154,4 @@ const updateKnowledgeBaseAndGoals = async(req, res) => {
 }
 
 
-module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn , handleClerkWebhook , createLearnerClerk };
+module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn, handleClerkWebhook, createLearnerClerk };

@@ -90,11 +90,12 @@ class LearnerService {
     }
 
     // Update learning styles
-    async updateLearningStyles(learnerId, learningStyles) {
+    async updateLearningStyles(criteria, learningStyles) {
         let client;
         try {
             client = await getConnection();
-            // Construct the query to update learning styles
+            // Construct the query to update learning styles based on id or email
+            const whereClause = criteria.learnerId ? 'id = $5' : 'email = $5';
             const query = `
                 UPDATE learner 
                 SET 
@@ -103,7 +104,7 @@ class LearnerService {
                     learning_style_sensing_intuitive = $3,
                     learning_style_sequential_global = $4,
                     last_active_date = CURRENT_TIMESTAMP
-                WHERE id = $5
+                WHERE ${whereClause}
                 RETURNING id;
                 `;
 
@@ -112,8 +113,12 @@ class LearnerService {
                 learningStyles.learning_style_visual_verbal,
                 learningStyles.learning_style_sensing_intuitive,
                 learningStyles.learning_style_sequential_global,
-                learnerId
+                criteria.learnerId || criteria.email
             ]);
+
+            if (result.rows.length === 0) {
+                throw new Error('Learner not found');
+            }
 
             return result.rows[0].id; // Return the ID of the updated learner
 
