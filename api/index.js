@@ -32,7 +32,11 @@ if (process.env.NODE_ENV === 'development') {
 
 if (process.env.NODE_ENV === 'production') {
     app.use((req, res, next) => {
-        res.setHeader('Access-Control-Allow-Origin', 'https://codengo.vercel.app');
+        const allowedOrigins = ['https://codengo.vercel.app', 'http://localhost:3000'];
+        const origin = req.headers.origin;
+        if (allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        }
         res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
         next();
     });
