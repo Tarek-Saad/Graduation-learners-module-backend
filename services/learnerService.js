@@ -209,6 +209,64 @@ class LearnerService {
             if (client) returnConnection(client);
         }
     }
+
+    async updateProfile(email, profileData) {
+        let client;
+        try {
+            client = await getConnection();
+            
+            // Filter out any sensitive or non-updatable fields
+            const { 
+                id, password_hash, email: _, created_at, last_active_date,
+                ...updatableFields 
+            } = profileData;
+
+            // Build the SET clause and values array dynamically
+            const updates = [];
+            const values = [];
+            let paramCount = 1;
+
+            for (const [key, value] of Object.entries(updatableFields)) {
+                if (value !== undefined) {
+                    updates.push(`${key} = $${paramCount}`);
+                    values.push(value);
+                    paramCount++;
+                }
+            }
+
+            // Add email as the last parameter
+            values.push(email);
+
+            // If no valid fields to update, throw error
+            if (updates.length === 0) {
+                throw new Error('No valid fields to update');
+            }
+
+            const query = `
+                UPDATE learner
+                SET ${updates.join(', ')},
+                    last_active_date = CURRENT_TIMESTAMP
+                WHERE email = $${paramCount}
+                RETURNING *;
+            `;
+
+            const result = await client.query(query, values);
+
+            if (result.rows.length === 0) {
+                throw new Error('Learner not found');
+            }
+
+            // Remove sensitive information before returning
+            const { password_hash: __, ...updatedProfile } = result.rows[0];
+            return updatedProfile;
+
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        } finally {
+            if (client) returnConnection(client);
+        }
+    }
 }
 
 module.exports = new LearnerService();

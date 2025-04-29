@@ -154,15 +154,15 @@ const updateKnowledgeBaseAndGoals = async(req, res) => {
 }
 
 // Get learner profile
-const getProfile = async (req, res) => {
+const getProfile = async(req, res) => {
     const { learnerId, email } = req.query;
-    
+
     if (!learnerId && !email) {
         return res.status(400).json({ error: 'Either learnerId or email must be provided' });
     }
 
     try {
-        const learner = email ? 
+        const learner = email ?
             await LearnerService.getLearnerByEmail(email) :
             await LearnerService.getLearnerById(learnerId);
 
@@ -172,7 +172,7 @@ const getProfile = async (req, res) => {
 
         // Remove sensitive information
         const { password_hash, ...profileData } = learner;
-        
+
         res.status(200).json(profileData);
     } catch (error) {
         console.error('Error fetching profile:', error);
@@ -180,14 +180,39 @@ const getProfile = async (req, res) => {
     }
 };
 
+// Update learner profile
+const updateProfile = async (req, res) => {
+    const { email } = req.params;
+    const profileData = req.body;
+
+    try {
+        // First check if the learner exists
+        const existingLearner = await LearnerService.getLearnerByEmail(email);
+        if (!existingLearner) {
+            return res.status(404).json({ error: 'Learner not found' });
+        }
+
+        // Update the profile
+        const updatedProfile = await LearnerService.updateProfile(email, profileData);
+        res.status(200).json(updatedProfile);
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        if (error.message === 'No valid fields to update') {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(500).json({ error: 'Error updating profile' });
+    }
+};
+
 module.exports = { 
     getAllLearners, 
     createLearner, 
     updateLearningStyles, 
-    updateKnowledgeBaseAndGoals, 
-    login, 
-    verifyTokenn, 
-    handleClerkWebhook, 
+    updateKnowledgeBaseAndGoals,
+    login,
+    verifyTokenn,
+    handleClerkWebhook,
     createLearnerClerk,
-    getProfile
+    getProfile,
+    updateProfile
 };
