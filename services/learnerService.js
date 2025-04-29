@@ -193,6 +193,22 @@ class LearnerService {
             if (client) returnConnection(client);
         }
     }
+
+    async getLearnerById(id) {
+        let client;
+        try {
+            client = await getConnection();
+            const query = 'SELECT * FROM learner WHERE id = $1';
+            const result = await client.query(query, [id]);
+            
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error getting learner by ID:', error);
+            throw error;
+        } finally {
+            if (client) returnConnection(client);
+        }
+    }
 }
 
 module.exports = new LearnerService();

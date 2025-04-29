@@ -153,5 +153,41 @@ const updateKnowledgeBaseAndGoals = async(req, res) => {
     }
 }
 
+// Get learner profile
+const getProfile = async (req, res) => {
+    const { learnerId, email } = req.query;
+    
+    if (!learnerId && !email) {
+        return res.status(400).json({ error: 'Either learnerId or email must be provided' });
+    }
 
-module.exports = { getAllLearners, createLearner, updateLearningStyles, updateKnowledgeBaseAndGoals, login, verifyTokenn, handleClerkWebhook, createLearnerClerk };
+    try {
+        const learner = email ? 
+            await LearnerService.getLearnerByEmail(email) :
+            await LearnerService.getLearnerById(learnerId);
+
+        if (!learner) {
+            return res.status(404).json({ error: 'Learner not found' });
+        }
+
+        // Remove sensitive information
+        const { password_hash, ...profileData } = learner;
+        
+        res.status(200).json(profileData);
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        res.status(500).json({ error: 'Error fetching profile' });
+    }
+};
+
+module.exports = { 
+    getAllLearners, 
+    createLearner, 
+    updateLearningStyles, 
+    updateKnowledgeBaseAndGoals, 
+    login, 
+    verifyTokenn, 
+    handleClerkWebhook, 
+    createLearnerClerk,
+    getProfile
+};

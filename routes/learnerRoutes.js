@@ -10,5 +10,6 @@ router.patch('/learner/knowledge-base-goals', LearnerController.updateKnowledgeB
 
 router.post('/login', LearnerController.login);
 router.post('/verify-token', LearnerController.verifyTokenn);
+router.get('/profile', LearnerController.getProfile);
 
 module.exports = router;
