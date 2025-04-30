@@ -12,5 +12,6 @@ router.post('/login', LearnerController.login);
 router.post('/verify-token', LearnerController.verifyTokenn);
 router.get('/profile', LearnerController.getProfile);
 router.put('/profile/:email', LearnerController.updateProfile);
+router.get('/hasLS/:email', LearnerController.hasActiveReflectiveStyle);
 
 module.exports = router;

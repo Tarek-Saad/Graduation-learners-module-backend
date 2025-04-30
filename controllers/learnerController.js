@@ -181,7 +181,7 @@ const getProfile = async(req, res) => {
 };
 
 // Update learner profile
-const updateProfile = async (req, res) => {
+const updateProfile = async(req, res) => {
     const { email } = req.params;
     const profileData = req.body;
 
@@ -204,15 +204,40 @@ const updateProfile = async (req, res) => {
     }
 };
 
+const hasActiveReflectiveStyle = async(req, res) => {
+try {
+const { email } = req.params;
+const client = await getConnection();
+    
+try {
+const query = 'SELECT learning_style_active_reflective FROM learner WHERE email = $1';
+const result = await client.query(query, [email]);
+        
+if (result.rows.length === 0) {
+return res.status(404).json({ error: 'Learner not found' });
+}
+        
+const hasValue = result.rows[0].learning_style_active_reflective !== null;
+res.json({ hasValue });
+        
+} finally {
+if (client) returnConnection(client);
+}
+} catch (error) {
+res.status(500).json({ error: error.message });
+}
+};
+
 module.exports = { 
-    getAllLearners, 
-    createLearner, 
-    updateLearningStyles, 
-    updateKnowledgeBaseAndGoals,
-    login,
-    verifyTokenn,
-    handleClerkWebhook,
-    createLearnerClerk,
-    getProfile,
-    updateProfile
+getAllLearners, 
+createLearner, 
+updateLearningStyles, 
+updateKnowledgeBaseAndGoals,
+login,
+verifyTokenn,
+getProfile,
+updateProfile,
+createLearnerClerk,
+handleClerkWebhook,
+hasActiveReflectiveStyle
 };
